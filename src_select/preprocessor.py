@@ -32,7 +32,7 @@ class Preprocessor:
             shuffle: bool = True,
             normalizer: str | None = 'z-score',
             agg: bool = False,
-            smote: float | str = 'auto',
+            smote: None | float | str = 'auto',
             resize: bool = False,
             target: str = 'cont',
             seed: int = 42,
