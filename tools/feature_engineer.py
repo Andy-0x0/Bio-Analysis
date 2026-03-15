@@ -953,7 +953,7 @@ class ClassificationFeatureEngineer:
         normalize: str = "z-score",
         parallel: bool = True,
         verbose: bool = True,
-    ) -> tuple[list, pd.DataFrame]:
+    ) -> pd.DataFrame:
         """
         Determine the most helpful features based on an ensemble of different models
 
@@ -991,7 +991,7 @@ class ClassificationFeatureEngineer:
                     pbar.update(1)
                     pbar.set_description(f"[{self.name_lookup[models[idx]]} - Done]")
         else:
-            ray.init(num_cpus=cpu_count(), ignore_reinit_error=True, log_to_driver=False)
+            ray.init(num_cpus=cpu_count(), ignore_reinit_error=True, log_to_driver=False, logging_level=logging.CRITICAL)
 
             model_instances = [self.model_lookup[m] for m in models]
             model_configs = [self.parallel_lookup[m] for m in models]

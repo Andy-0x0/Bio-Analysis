@@ -24,8 +24,13 @@ def check_folders(*path_args: str) -> Callable:
         def wrapper(*args, **kwargs) -> Any:
             # check and create the dependencies if needed
             for path_arg in path_args:
+                path = kwargs.get(path_arg)
+
+                if path is None:
+                    continue
+
                 try:
-                    path = Path(kwargs.get(path_arg))
+                    path = Path(path)
                 except Exception as e:
                     logger.warning(role=f"f{funct.__name__}", message=f"no such kwarg at function calling: {path_arg}")
                 else:
