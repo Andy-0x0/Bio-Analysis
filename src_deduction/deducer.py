@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Callable, Dict, List, Tuple, cast
+from dataclasses import dataclass, asdict
+from typing import Callable, Dict, List, Tuple, Self, cast
 from functools import partial
 from copy import deepcopy
 
@@ -8,17 +8,17 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 import os
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-from tools.io_engineer import check_folders, fetch_tokens
-from tools.logger import SyncLogger
-from preprocessor import Preprocessor
+from tools import SyncLogger, check_folders, fetch_tokens
+from .preprocessor import Preprocessor
 
 
 # import path consts
@@ -44,6 +44,60 @@ class Window:
     def __repr__(self):
         return f"Window(token={self.token}, len4window={len(self.label_status)}, len4data={len(self.label)})"
 
+    @staticmethod
+    def json_load(path: str | os.PathLike | Path) -> "Window":
+        # load the json checkpoint
+        try:
+            with open(Path(path), 'r') as fp:
+                config = json.load(fp)
+
+        except Exception as e:
+            raise e
+
+        else:
+            config["curve"] = pd.DataFrame(
+                config.get("curve", None),
+                index=config.get("_curve_idx", None),
+                columns=config.get("_curve_col", None)
+            )
+            config["label"] = pd.Series(
+                config.get("label", None),
+                index=config.get("_label_idx", None)
+            )
+            config["spike_status"] = pd.DataFrame(
+                config.get("spike_status", None),
+                index=config.get("_spike_status_idx", None),
+                columns=config.get("_spike_status_col", None)
+            )
+            config["label_status"] = pd.DataFrame(
+                config.get("label_status", None),
+                index=config.get("_label_status_idx", None),
+                columns=config.get("_label_status_col", None)
+            )
+
+            for key in list(config.keys()):
+                if key.startswith("_"):
+                    del config[key]
+
+            return Window(**config)
+
+    def json_dump(self, path: str | os.PathLike | Path) -> None:
+        # transform pandas objects into pure lists
+        ref_config = deepcopy(asdict(self))
+        ans_config = deepcopy(ref_config)
+        for key, value in ref_config.items():
+            if isinstance(value, pd.Series):
+                ans_config[key] = value.tolist()
+                ans_config[f"_{key}_idx"] = value.index.tolist()
+
+            elif isinstance(value, pd.DataFrame):
+                ans_config[key] = value.values.tolist()
+                ans_config[f"_{key}_idx"] = value.index.tolist()
+                ans_config[f"_{key}_col"] = value.columns.tolist()
+
+        # save the transformed config dict
+        with open(Path(path), 'w') as fp:
+            json.dump(ans_config, fp)
 
 
 class Locator:
@@ -101,6 +155,7 @@ class Locator:
 
         return windows
 
+    @check_folders("tgt_folder")
     def get_windows(
         self,
         token: str,
@@ -109,6 +164,8 @@ class Locator:
         threshold: float = 0.55,
         method: str = 'max',
         step: int = 1,
+        rerun: bool = False,
+        tgt_folder: None | str | os.PathLike | Path = None,
     ) -> Dict[str, Window]:
         """
 
@@ -118,83 +175,101 @@ class Locator:
         :param threshold:
         :param method:
         :param step:
+        :param rerun:
+        :param tgt_folder:
 
         :return:
         """
 
-        # get all normalized aggregated signal & label index time series
-        prep = Preprocessor(
-            beh_path=self.sig_folder / Path(f"{token}_B.csv"),
-            sig_path=self.beh_folder / Path(f"{token}_S.csv"),
-            target=beh,
-            tvt_ratio=(1.0, 0.0, 0.0),
-            shuffle=False,
-            normalizer='min-max',
-            agg=True,
-            smote=None,
-            resize=True,
-            log_level="WARNING"
-        )
+        try:
+            if rerun:
+                raise Exception("rerun hack")
+            window_lookup = {
+                "none":     Window.json_load(path=Path(tgt_folder) / Path(f"{token}_N.json")),
+                "both":     Window.json_load(path=Path(tgt_folder) / Path(f"{token}_B.json")),
+                "left":     Window.json_load(path=Path(tgt_folder) / Path(f"{token}_L.json")),
+                "right":    Window.json_load(path=Path(tgt_folder) / Path(f"{token}_R.json"))
+            }
 
-        # init the class-level global window
-        ori_curve = prep.get_origin_total(shard='x')
-
-        if smooth >= 1:
-            # the execution function for smoothing
-            def _smooth(series: pd.Series) -> pd.Series:
-                ori_series = series.to_list()
-                for idx, val in enumerate(series):
-                    series.iloc[idx] = np.mean(ori_series[max(0, idx - smooth): min(len(ori_series) - 1, idx + smooth + 1)]).item()
-                return series
-
-            results = Parallel(n_jobs=multiprocessing.cpu_count())(
-                delayed(_smooth)(ori_curve.loc[:, col])
-                for col in ori_curve.columns
+        except Exception as e:
+            # get all normalized aggregated signal & label index time series
+            prep = Preprocessor(
+                beh_path=self.sig_folder / Path(f"{token}_B.csv"),
+                sig_path=self.beh_folder / Path(f"{token}_S.csv"),
+                target=beh,
+                tvt_ratio=(1.0, 0.0, 0.0),
+                shuffle=False,
+                normalizer='min-max',
+                agg=True,
+                smote=None,
+                resize=True,
+                log_level="WARNING"
             )
 
-            aft_curve = pd.concat(results, axis=1)
-            aft_curve.columns = ori_curve.columns
-        else:
-            aft_curve = ori_curve
+            # init the class-level global window
+            ori_curve = prep.get_origin_total(shard='x')
 
-        init_spike_status = self._init_spike(
-            curve=aft_curve.loc[:, 'SUM'].tolist(),
-            threshold=threshold,
-            method=method,
-        )
+            if smooth >= 1:
+                # the execution function for smoothing
+                def _smooth(series: pd.Series) -> pd.Series:
+                    ori_series = series.to_list()
+                    for idx, val in enumerate(series):
+                        series.iloc[idx] = np.mean(ori_series[max(0, idx - smooth): min(len(ori_series) - 1, idx + smooth + 1)]).item()
+                    return series
 
-        window_lookup = {}
-        window_lookup['none'] = Window(
-            token=token,
-            beh=beh,
-            curve=aft_curve,
-            label=prep.get_origin_total(shard='y'),
-            spike_status=pd.DataFrame(
-                {
-                    'left':     init_spike_status,
-                    'center':   init_spike_status,
-                    'right':    init_spike_status,
-                    'hit':      False,
-                }
-            ),
-            label_status=pd.DataFrame(
-                {
-                    'index':    np.where(np.array(prep.get_origin_total(shard="y")) == 1)[0].tolist(),
-                    'hit':      False,
-                }
-            ),
-            valid=(np.array(prep.get_origin_total(shard='y')) == 1).any()
-        )
+                results = Parallel(n_jobs=multiprocessing.cpu_count())(
+                    delayed(_smooth)(ori_curve.loc[:, col])
+                    for col in ori_curve.columns
+                )
 
-        # extend the boarders for three directions in parallel
-        with ProcessPoolExecutor(max_workers=3) as executor:
-            futures = [
-                executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "both"),
-                executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "left"),
-                executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "right"),
-            ]
+                aft_curve = pd.concat(results, axis=1)
+                aft_curve.columns = ori_curve.columns
+            else:
+                aft_curve = ori_curve
 
-            window_lookup['both'], window_lookup['left'], window_lookup['right'] = [f.result() for f in futures]
+            init_spike_status = self._init_spike(
+                curve=aft_curve.loc[:, 'SUM'].tolist(),
+                threshold=threshold,
+                method=method,
+            )
+
+            window_lookup = {}
+            window_lookup['none'] = Window(
+                token=token,
+                beh=beh,
+                curve=aft_curve,
+                label=prep.get_origin_total(shard='y'),
+                spike_status=pd.DataFrame(
+                    {
+                        'left':     init_spike_status,
+                        'center':   init_spike_status,
+                        'right':    init_spike_status,
+                        'hit':      False,
+                    }
+                ),
+                label_status=pd.DataFrame(
+                    {
+                        'index':    np.where(np.array(prep.get_origin_total(shard="y")) == 1)[0].tolist(),
+                        'hit':      False,
+                    }
+                ),
+                valid=(np.array(prep.get_origin_total(shard='y')) == 1).any().item()
+            )
+
+            # extend the boarders for three directions in parallel
+            with ProcessPoolExecutor(max_workers=3) as executor:
+                futures = [
+                    executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "both"),
+                    executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "left"),
+                    executor.submit(self._push_spike, deepcopy(window_lookup['none']), step, "right"),
+                ]
+
+                window_lookup['both'], window_lookup['left'], window_lookup['right'] = [f.result() for f in futures]
+
+                window_lookup['none' ].json_dump(path=Path(tgt_folder) / Path(f"{token}_N.json"))
+                window_lookup['both' ].json_dump(path=Path(tgt_folder) / Path(f"{token}_B.json"))
+                window_lookup['left' ].json_dump(path=Path(tgt_folder) / Path(f"{token}_L.json"))
+                window_lookup['right'].json_dump(path=Path(tgt_folder) / Path(f"{token}_R.json"))
 
         self.logger.info(role="Locator", message=f"{token} window expanding completed")
 
@@ -690,37 +765,39 @@ if __name__ == "__main__":
     )
 
     # 3d penalty bar plot =================================================
-    window_configs = []
-    for token in ("K215_A_D1", "K215_B_D8", "K228_A_D7"):
-        for beh in ("cont", "both"):
-            window_configs.append(loc.get_windows(
-                token=token,
-                beh=beh,
-                smooth=10,
-                threshold=0.55,
-                method='max',
-                step=1
-            ))
+    # window_configs = []
+    # for token in ("K215_A_D1", "K215_B_D8", "K228_A_D7"):
+    #     for beh in ("cont", "both"):
+    #         window_configs.append(loc.get_windows(
+    #             token=token,
+    #             beh=beh,
+    #             smooth=10,
+    #             threshold=0.55,
+    #             method='max',
+    #             step=1
+    #         ))
+    #
+    # penalty_table = PenaltyComputer.compute_penalties(tuple(window_configs))
+    #
+    # Visualizer.display_3d_penalty(table=penalty_table)
+    # print()
+    # print(penalty_table)
 
-    penalty_table = PenaltyComputer.compute_penalties(tuple(window_configs))
 
-    Visualizer.display_3d_penalty(table=penalty_table)
-    print()
-    print(penalty_table)
+    # window visualization ==================================================
+    window_config = loc.get_windows(
+        token="K215_A_D1",
+        beh="cont",
+        smooth=10,
+        threshold=0.55,
+        method='max',
+        step=1,
+        rerun=False,
+        tgt_folder=PATH_CACHE / Path("deduce/cont")
+    )
 
-
-    # window visualization
-    # window_config = loc.get_windows(
-    #     token="K232_A_D7",
-    #     beh="both",
-    #     smooth=10,
-    #     threshold=0.55,
-    #     method='max',
-    #     step=1
-    # )
-
-    # Visualizer.display_window(window_config['both'])
-    # Visualizer.display_window(window_config['left'])
-    # Visualizer.display_window(window_config['right'])
+    Visualizer.display_window(window_config['both'])
+    Visualizer.display_window(window_config['left'])
+    Visualizer.display_window(window_config['right'])
 
 
