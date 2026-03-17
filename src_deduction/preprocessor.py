@@ -14,7 +14,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from imblearn.over_sampling import SMOTE
 
-from tools.logger import SyncLogger
+from tools import SyncLogger
 
 # import path consts
 load_dotenv("../config/.env.path")
