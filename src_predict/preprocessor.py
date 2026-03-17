@@ -32,7 +32,7 @@ class Preprocessor:
             shuffle: bool = True,
             normalizer: str | None = 'z-score',
             agg: bool = False,
-            smote: float | str | None = 'auto',
+            smote: None | float | str = 'auto',
             resize: bool = False,
             target: str = 'cont',
             seed: int = 42,
@@ -359,11 +359,11 @@ class Preprocessor:
         self.dataset_df.loc[:, self.behavior_df.name] = self.behavior_df.values
 
     def _transform(
-        self,
-        tvt_ratio: Tuple[float, float, float] = (0.5, 0.0, 0.5),
-        shuffle: bool = True,
-        smote_strategy: float | str | None = 'auto',
-        normalizer: str = 'z-score',
+            self,
+            tvt_ratio: Tuple[float, float, float] = (0.5, 0.0, 0.5),
+            shuffle: bool = True,
+            smote_strategy: float | str | None = 'auto',
+            normalizer: str = 'z-score',
     ) -> None:
         """
         Transform the dataset

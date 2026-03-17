@@ -405,7 +405,7 @@ class Preprocessor:
             train_x, train_y = smote.fit_resample(train_df.iloc[:, :-1], train_df.iloc[:, -1])
             train_df = pd.concat((train_x, train_y), axis=1)
             if shuffle:
-                train_df = train_df.sample(frac=1, random_state=0)
+                train_df = train_df.sample(frac=1, random_state=self.seed)
 
         total_df = pd.concat(list(filter(lambda x: x is not None, [train_df, valid_df, test_df])), axis=0)
 
