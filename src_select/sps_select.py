@@ -423,7 +423,6 @@ class SPSSelector:
         try:
             if rerun:
                 raise Exception("rerun hack")
-            score_mat = pd.read_csv(Path(tgt_folder) / Path(f"{token}_V.csv"))
 
             with open(Path(tgt_folder) / Path(f"{token}_C.json"), 'r') as fp:
                 lookup_ref = json.load(fp)
@@ -433,6 +432,8 @@ class SPSSelector:
                 resize == lookup_ref.get("resize", None)
             ):
                 raise Exception("rerun hack")
+
+            score_mat = pd.read_csv(Path(tgt_folder) / Path(f"{token}_V.csv"))
 
         # compute the scoring matrix if not exists
         except Exception as e:
