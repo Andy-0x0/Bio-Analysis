@@ -19,16 +19,9 @@ from sklearn.svm import LinearSVC, SVC
 import lightgbm as lgb
 import xgboost as xgb
 
-from tools.io_engineer import check_folders, fetch_tokens
-from tools.logger import SyncLogger
-from preprocessor import Preprocessor
+from tools import SyncLogger, check_folders, fetch_tokens
+from .preprocessor import Preprocessor
 
-
-phase_to_day = {
-    "early":    (1, 2),
-    "middle":   (4, 5),
-    "late":     (7, 8),
-}
 
 # import path consts
 load_dotenv("../config/.env.path")

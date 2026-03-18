@@ -4,10 +4,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from tools.logger import SyncLogger
-from tools.feature_engineer import ClassificationFeatureEngineer
-from tools.io_engineer import check_folders, fetch_tokens
-from preprocessor import Preprocessor
+from tools import ClassificationFeatureEngineer, SyncLogger, check_folders, fetch_tokens
+from .preprocessor import Preprocessor
 
 
 # import path consts
@@ -105,15 +103,6 @@ def rfecv_select(
 
 
 
-if __name__ == '__main__':
-    rfecv_select(
-        src_folder=PATH_DATA,
-        tgt_folder=PATH_CACHE / Path('rfecv_init_vote/cont'),
-        beh='cont',
-        on_select=lambda x: True,
-        tt_ratio=(0.5, 0.5),
-        rerun=False,
-        seed=42,
-    )
+
 
 

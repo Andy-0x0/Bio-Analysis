@@ -12,9 +12,8 @@ from matplotlib.colors import ListedColormap
 from sklearn.metrics import ConfusionMatrixDisplay
 import lightgbm as lgb
 
-from tools.io_engineer import check_folders, fetch_tokens
-from tools.logger import SyncLogger
-from preprocessor import Preprocessor
+from tools import SyncLogger, check_folders, fetch_tokens
+from .preprocessor import Preprocessor
 
 
 # import path consts
