@@ -8,10 +8,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tools.logger import SyncLogger
-from tools.feature_engineer import ClassificationFeatureEngineer
-from tools.io_engineer import check_folders, fetch_tokens
-from preprocessor import Preprocessor
+from tools import ClassificationFeatureEngineer, SyncLogger, check_folders, fetch_tokens
+from .preprocessor import Preprocessor
 
 
 # import path consts
@@ -427,6 +425,15 @@ class SPSSelector:
                 raise Exception("rerun hack")
             score_mat = pd.read_csv(Path(tgt_folder) / Path(f"{token}_V.csv"))
 
+            with open(Path(tgt_folder) / Path(f"{token}_C.json"), 'r') as fp:
+                lookup_ref = json.load(fp)
+
+            if (
+                score.lower().strip() != lookup_ref.get("score", None).lower().strip() or
+                resize == lookup_ref.get("resize", None)
+            ):
+                raise Exception("rerun hack")
+
         # compute the scoring matrix if not exists
         except Exception as e:
             prep = Preprocessor(
@@ -524,23 +531,3 @@ class SPSSelector:
                 json.dump(lookup, fp, indent=4)
 
         return selected
-
-
-if __name__ == '__main__':
-    mapper = SPSSelector(
-        sig_folder=PATH_DATA,
-        beh_folder=PATH_DATA
-    )
-
-    mapper.event_heatmap(
-        token="K215_A_D1",
-        cells=mapper.sps_select(
-            token="K215_A_D1",
-            threshold=0.58,
-            tgt_folder=PATH_CACHE / Path(f"sps_init/cont"),
-            plt_folder=PATH_PLOT / Path(f"sps_select/cont/bar"),
-        ),
-        plt_folder=PATH_PLOT / Path(f"sps_select/cont/heatmap"),
-    )
-
-
