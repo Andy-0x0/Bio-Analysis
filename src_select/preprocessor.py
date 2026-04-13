@@ -515,7 +515,7 @@ class Preprocessor:
 
     def get_test(self, shard="all"):
         if shard == "all":
-            return self.core["test_df_aft"] if self.core["valid_df_aft"] is not None else None
+            return self.core["test_df_aft"] if self.core["test_df_aft"] is not None else None
         elif shard == "x":
             return self.core["test_df_aft"].iloc[:, :-1] if self.core["test_df_aft"] is not None else None
         elif shard == "y":
