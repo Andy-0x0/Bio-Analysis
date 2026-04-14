@@ -120,7 +120,7 @@ class SPSSelector:
         starts = list(map(lambda x: x[0], y_inv))
 
         # parse "X000N" cells into corresponding column indexes
-        if cells is not None:
+        if cells is not None and cells:
             if isinstance(cells[0], str):
                 cells = list(map(lambda x: x_tot.columns.get_loc(x), cells))
         else:
@@ -279,7 +279,7 @@ class SPSSelector:
         starts = list(map(lambda x: x[0], y_inv))
 
         # parse "X000N" cells into corresponding column indexes
-        if cells is not None:
+        if cells is not None and cells:
             if isinstance(cells[0], str):
                 cells = list(map(lambda x: x_tot.columns.get_loc(x), cells))
         else:
