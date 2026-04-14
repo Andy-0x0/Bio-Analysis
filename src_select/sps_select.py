@@ -429,7 +429,7 @@ class SPSSelector:
 
             if (
                 score.lower().strip() != lookup_ref.get("score", None).lower().strip() or
-                resize == lookup_ref.get("resize", None)
+                resize != lookup_ref.get("resize", None)
             ):
                 raise Exception("rerun hack")
 
