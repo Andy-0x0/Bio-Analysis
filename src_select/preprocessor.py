@@ -14,7 +14,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from imblearn.over_sampling import SMOTE
 
-from tools import SyncLogger
+from tools import ABlockLogger
 
 # import path consts
 load_dotenv("../config/.env.path")
@@ -70,7 +70,7 @@ class Preprocessor:
         self.target = target
         self.seed = seed
 
-        self.logger = SyncLogger(level=log_level)
+        self.logger = ABlockLogger(level=log_level)
         self.sig_fps = 1 / (1.000045 if Path(sig_path).stem.split('_')[0] == 'K215' else 1.001286)
         self.beh_fps = 7.06
         self.beh_frame_to_second = lambda x: x / self.beh_fps

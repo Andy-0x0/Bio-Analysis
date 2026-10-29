@@ -8,7 +8,7 @@ import random
 import pandas as pd
 import numpy as np
 
-from tools.logger import SyncLogger
+from tools.logger import ABlockLogger
 from tools.io_engineer import fetch_tokens
 from src_predict.preprocessor import Preprocessor
 
@@ -20,7 +20,7 @@ PATH_MEMO = Path(os.getenv("MEMO_DATA_PATH"))  # path of the memory data directo
 
 
 # global test report logger
-logger = SyncLogger(level="DEBUG")
+logger = ABlockLogger(level="DEBUG")
 
 
 def test_preprocessor_determinism():
@@ -42,7 +42,7 @@ def test_preprocessor_determinism():
             "smote": random.choice([random.random(), None]),
             "resize": random.choice([True, False]),
             "target": random.choice(['cont', 'cont&inv', 'cont_inv', 'both', 'both_inv', 'both&inv']),
-            "log_level": "SILENCE"
+            "log_level": "ERROR"
         }
 
     tokens = fetch_tokens(folder=PATH_DATA, shard="all")

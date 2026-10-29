@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from tools import SyncLogger
+from tools import ABlockLogger
 from src_predict import rfecv_select
 
 # import path consts
@@ -19,12 +19,12 @@ beh         = "cont"
 on_select   = lambda x: True
 tt_ratio    = (0.5, 0.5)
 rerun       = False
-src_folder  = PATH_DATA
-tgt_folder  = PATH_CACHE / Path(f'rfecv_init_vote/{beh}')
+src_folder  = PATH_MEMO
+tgt_folder  = PATH_CACHE / Path(f'rfecv_memo_vote/{beh}')
 
 # main execution logics
 if __name__ == '__main__':
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
     logger.warning(role="script.rfecv_select", message="start execute rfecv_select.py")
 
     rfecv_select(

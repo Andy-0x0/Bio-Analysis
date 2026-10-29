@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 
-from tools import SyncLogger, fetch_tokens
+from tools import ABlockLogger, fetch_tokens
 from src_select import SPSSelector
 
 # import path consts
@@ -27,7 +27,7 @@ plt_cur_folder  = PATH_PLOT  / Path(f"sps_select/{beh}/curve")
 
 # main execution logics
 if __name__ == '__main__':
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
     logger.warning(role="script.sps_select_produce", message="start execute sps_select_produce.py")
 
     mapper = SPSSelector(

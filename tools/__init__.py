@@ -8,5 +8,5 @@ __all__ = [
     "ClassificationFeatureEngineer",
     "check_folders",
     "fetch_tokens",
-    "SyncLogger",
+    "ABlockLogger",
 ]

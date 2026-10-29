@@ -1,4 +1,4 @@
-from tools import SyncLogger, fetch_tokens
+from tools import ABlockLogger, fetch_tokens
 from src_deduction import Locator, PenaltyComputer, Visualizer
 
 import os
@@ -32,7 +32,7 @@ tgt_root        = PATH_CACHE / Path("deduce")
 
 # main execution logics
 if __name__ == '__main__':
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
     logger.warning(role="script.deduce_3d", message="start execute deduce_3d.py")
 
     loc = Locator(
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     penalty_table = PenaltyComputer.compute_penalties(
         window_configs=tuple(window_configs),
-        label_penalty = 10.0,
+        label_penalty = 100.0,
         spike_penalty = 0.1
     )
     Visualizer.display_3d_penalty(

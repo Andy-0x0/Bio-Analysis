@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from tools import SyncLogger
+from tools import ABlockLogger
 from src_predict import Summarizer
 
 # import path consts
@@ -18,16 +18,16 @@ seed        = 42
 beh         = "cont"
 models      = ('LR', 'SVM', 'RF', 'XGB', 'LGB')
 standard    = 3
-rerun       = False
-on_predict  = lambda x: True
-src_folder  = PATH_DATA
-sel_folder  = PATH_CACHE / Path(f"rfecv_init_vote/{beh}")
-cac_folder  = PATH_CACHE / Path(f"rfecv_init_scor/{beh}")
-tgt_folder  = PATH_PLOT  / Path("rfecv_predict/summary")
+rerun       = True
+on_predict  = lambda x: ('M4' in x) or ('M5' in x)
+src_folder  = PATH_MEMO
+sel_folder  = PATH_CACHE / Path(f"rfecv_memo_vote/{beh}")
+cac_folder  = PATH_CACHE / Path(f"rfecv_memo_scor/{beh}")
+tgt_folder  = PATH_PLOT  / Path("rfecv_predict/memo/summary")
 
 # main execution logics
 if __name__ == '__main__':
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
     logger.warning(role="script.rfecv_summary", message="start execute rfecv_summary.py")
 
     sm = Summarizer(

@@ -12,7 +12,7 @@ from matplotlib.colors import ListedColormap
 from sklearn.metrics import ConfusionMatrixDisplay
 import lightgbm as lgb
 
-from tools import SyncLogger, check_folders, fetch_tokens
+from tools import ABlockLogger, check_folders, fetch_tokens
 from .preprocessor import Preprocessor
 
 
@@ -67,7 +67,7 @@ def rfecv_predict(
     :return: None
     """
 
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
 
     # generate all paths for data files to-be-predict
     tokens = fetch_tokens(folder=src_folder, shard="all")
@@ -183,7 +183,7 @@ def rfecv_predict(
             ax.set(xlabel=None, ylabel=None, xticklabels=[], yticklabels=[])
 
         # confusion matrix saving
-        plt.savefig(Path(tgt_mat_folder) / Path(f"{token}-{beh}.pdf"))
+        plt.savefig(Path(tgt_mat_folder) / Path(f"{token}-{beh}.svg"))
         plt.close()
 
         # raw data saving

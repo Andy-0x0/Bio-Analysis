@@ -17,7 +17,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from tools import SyncLogger, check_folders, fetch_tokens
+from tools import ABlockLogger, check_folders, fetch_tokens
 from .preprocessor import Preprocessor
 
 
@@ -111,7 +111,7 @@ class Locator:
         self.sig_folder = Path(sig_folder)
         self.beh_folder = Path(beh_folder)
 
-        self.logger = SyncLogger(level=log_level)
+        self.logger = ABlockLogger(level=log_level)
 
     @staticmethod
     def _get_sci(window, col_name):

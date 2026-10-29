@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 
 
-from tools.logger import SyncLogger
+from tools.logger import ABlockLogger
 
 
 def check_folders(*path_args: str) -> Callable:
@@ -17,7 +17,7 @@ def check_folders(*path_args: str) -> Callable:
     :return: The decorated function
     """
 
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
 
     def decorator(funct: Callable) -> Callable:
 
@@ -60,7 +60,7 @@ def fetch_tokens(
 
     :return: The sorted tuple of the tokens
     """
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
 
     pattern = re.compile(r"^(K\d{3}_[AB]_[A-Za-z]\d)_[A-Za-z]$")
 

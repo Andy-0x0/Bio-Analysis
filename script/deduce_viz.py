@@ -1,4 +1,4 @@
-from tools import SyncLogger
+from tools import ABlockLogger
 from src_deduction import Locator, Visualizer
 
 import os
@@ -28,7 +28,7 @@ tgt_folder  = PATH_CACHE / Path(f"deduce/{beh}")
 
 # main execution logics
 if __name__ == "__main__":
-    logger = SyncLogger(level="INFO")
+    logger = ABlockLogger(level="INFO")
     logger.warning(role="script.deduce_viz", message="start execute deduce_viz.py")
 
     loc = Locator(

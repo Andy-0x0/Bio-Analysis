@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tools import ClassificationFeatureEngineer, SyncLogger, check_folders, fetch_tokens
+from tools import ClassificationFeatureEngineer, ABlockLogger, check_folders, fetch_tokens
 from .preprocessor import Preprocessor
 
 
@@ -34,7 +34,7 @@ class SPSSelector:
         self.beh_folder = Path(beh_folder)
         self.seed = seed
 
-        self.logger = SyncLogger(level=log_level)
+        self.logger = ABlockLogger(level=log_level)
 
     @staticmethod
     def find_target(array, funct=lambda x: x == 1):
@@ -524,7 +524,12 @@ class SPSSelector:
 
             else:
                 config_diff = " | ".join([
-                    f"{key}: {value[0]} -> {value[1] if value[1] is not None else '_'}" for key, value in SPSSelector.diff_dict(lookup_ref, lookup).items()
+                    f"{key}: {value[0]} -> {value[1] if value[1] is not None else '_'}"
+                    if key != "selected_index"
+                    else f"{key}: {list(map(lambda x: f'-{x}', set(value[0]) - set(value[1]))) + list(map(lambda x: f'+{x}', set(value[1]) - set(value[0])))}"
+
+                    for key, value
+                    in SPSSelector.diff_dict(lookup_ref, lookup).items()
                 ])
                 self.logger.info(role="SPSSelector", message=f"SPS-Selection on {token} for {beh} updated: {config_diff if config_diff else '_'}")
 

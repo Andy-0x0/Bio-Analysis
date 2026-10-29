@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from tools import ClassificationFeatureEngineer, SyncLogger, check_folders, fetch_tokens
+from tools import ClassificationFeatureEngineer, ABlockLogger, check_folders, fetch_tokens
 from .preprocessor import Preprocessor
 
 
@@ -41,7 +41,7 @@ def rfecv_select(
     :return: None
     """
 
-    logger = SyncLogger(level='INFO')
+    logger = ABlockLogger(level='INFO')
 
     # generate all paths for data files to-be-processed
     tokens = fetch_tokens(folder=src_folder, shard="all")

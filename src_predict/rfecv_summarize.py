@@ -19,7 +19,7 @@ from sklearn.svm import LinearSVC, SVC
 import lightgbm as lgb
 import xgboost as xgb
 
-from tools import SyncLogger, check_folders, fetch_tokens
+from tools import ABlockLogger, check_folders, fetch_tokens
 from .preprocessor import Preprocessor
 
 
@@ -48,7 +48,7 @@ class Summarizer:
         self.seed = seed
         self.src_folder = Path(src_folder)
 
-        self.logger = SyncLogger(level="INFO")
+        self.logger = ABlockLogger(level="INFO")
         self.model_name_lookup = {
             'LR': 'Lasso',
             'SVM': 'SVM',
