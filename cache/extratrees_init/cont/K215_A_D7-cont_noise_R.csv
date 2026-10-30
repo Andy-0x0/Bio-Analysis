@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K215_A_D7,cont,noise,all,31,55,3,0.615731861098304,0.8175849491692424

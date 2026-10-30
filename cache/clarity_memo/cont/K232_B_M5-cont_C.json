@@ -1,0 +1,10 @@
+{
+    "token": "K232_B_M5",
+    "beh": "cont",
+    "inner_width": [
+        -50,
+        50
+    ],
+    "n_shift": 1000,
+    "seed": 42
+}

@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K227_A_M1,cont,real,all,54,39,5,0.5448907068085462,0.46837723355567457

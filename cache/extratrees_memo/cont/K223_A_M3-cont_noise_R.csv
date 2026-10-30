@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K223_A_M3,cont,noise,all,51,23,3,0.7283780375182941,0.7839867889105235

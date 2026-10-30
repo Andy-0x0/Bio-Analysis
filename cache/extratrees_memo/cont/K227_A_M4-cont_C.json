@@ -1,0 +1,20 @@
+{
+    "token": "K227_A_M4",
+    "beh": "cont",
+    "subsets": [
+        "all"
+    ],
+    "fraction": 0.3,
+    "noise": false,
+    "n_blocks": 5,
+    "purge": 50,
+    "valid_ratio": 0.15,
+    "window": 50,
+    "causal": true,
+    "inner_width": [
+        -50,
+        50
+    ],
+    "n_shift": 1000,
+    "seed": 42
+}

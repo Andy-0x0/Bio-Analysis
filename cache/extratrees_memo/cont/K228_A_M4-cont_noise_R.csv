@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K228_A_M4,cont,noise,all,25,38,4,0.6273526795586635,0.707440563621353
