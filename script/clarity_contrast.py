@@ -30,7 +30,6 @@ parser.add_argument("--curve-step",     type=float, default=0.25,               
 parser.add_argument("--min-cells",      type=int,   default=3,                                                          help="the minimum number of significant cells for a token to be plotted")
 parser.add_argument("--min-events",     type=int,   default=3,                                                          help="the minimum number of events of both kinds for a token to be plotted")
 parser.add_argument("--n-bins",         type=int,   default=15,                                                         help="the number of clarity-fraction bins of the overlap histograms")
-parser.add_argument("--bandwidth",      type=float, default=0.1,                                                        help="the kernel bandwidth (in clarity fraction) of the smoothed overlap trend")
 parser.add_argument("--clear-fraction", type=float, default=0.4,                                                        help="the clarity fraction from which a bucket counts as clear")
 parser.add_argument("--n-workers",      type=int,   default=4,                                                          help="the number of worker processes over the tokens")
 parser.add_argument("--rerun",          action="store_true",                                                            help="re-run even if the contrast caches exist")
@@ -50,7 +49,6 @@ curve_step  = args.curve_step
 min_cells   = args.min_cells
 min_events  = args.min_events
 n_bins      = args.n_bins
-bandwidth   = args.bandwidth
 clear_frac  = args.clear_fraction
 n_workers   = args.n_workers
 rerun       = args.rerun
@@ -110,7 +108,6 @@ if __name__ == '__main__':
         threshold=threshold,
         min_cells=min_cells,
         n_bins=n_bins,
-        bandwidth=bandwidth,
         clear_fraction=clear_frac,
     )
     viz.display_profile(

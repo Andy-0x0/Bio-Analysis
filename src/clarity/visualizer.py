@@ -257,15 +257,13 @@ class ClarityVisualizer:
         threshold: float                = 2.0,
         min_cells: int                  = 3,
         n_bins: int                     = 15,
-        bandwidth: float                = 0.1,
         clear_fraction: float           = 0.4,
     ) -> None:
         """
-        Plot, per target pair, the overlap of the significant cells as a histogram over the clarity of the tokens:
-        the tokens are binned by the fraction of reference-significant cells, every bin shows the mean containment
-        (shared cells over the smaller set) of its tokens with the token count on top, the clear bins in the dark
-        tone, the unclear ones in the light tone; a Gaussian-kernel trend of the observed containment (solid) and of
-        the chance containment of two independent draws (dashed) runs across the bins
+        Plot, per target pair, the distribution of the tokens over their clarity with the overlap of the significant
+        cells as the colour: the tokens are binned by the fraction of reference-significant cells, the bar height is
+        the number of tokens in the bin, and the bar colour is the mean containment (shared cells over the smaller
+        set) of those tokens, the darker the higher; a dashed line splits the clear from the unclear tokens
 
         :param table:           The stacked records of the contrast engine (one row per token and pair)
         :param tgt_folder:      The folder where the plot will be saved
@@ -273,8 +271,7 @@ class ClarityVisualizer:
         :param threshold:       The minimum z-score of a significant cell (title only)
         :param min_cells:       The minimum size of both significant sets for a token to count
         :param n_bins:          The number of equal bins of the clarity fraction (reference-significant cells / all cells)
-        :param bandwidth:       The Gaussian kernel bandwidth (in clarity fraction) of the smoothed trends
-        :param clear_fraction:  The clarity fraction from which a bin counts as clear
+        :param clear_fraction:  The clarity fraction from which a token counts as clear
 
         :return: None
         """
@@ -282,18 +279,12 @@ class ClarityVisualizer:
         pairs = list(table[["first", "second"]].drop_duplicates().itertuples(index=False))
         edges = np.linspace(0.0, 1.0, n_bins + 1)
         centers = (edges[:-1] + edges[1:]) / 2
-        clear = centers >= clear_fraction
-        grid = np.linspace(0.0, 1.0, 201)
-
-        def trend(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-            # the Nadaraya-Watson kernel average of y over x, undefined where no token is within two bandwidths
-            weights = np.exp(-0.5 * ((grid[:, None] - x[None, :]) / bandwidth) ** 2)
-            support = np.abs(grid[:, None] - x[None, :]).min(axis=1) <= 2 * bandwidth
-            return np.where(support, (weights * y[None, :]).sum(axis=1) / (weights.sum(axis=1) + 1e-12), np.nan)
+        cmap = plt.get_cmap("Blues")
+        norm = matplotlib.colors.Normalize(vmin=0.0, vmax=1.0)
 
         n_cols = min(3, len(pairs))
         n_rows = int(np.ceil(len(pairs) / n_cols))
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.5 * n_cols, 4.5 * n_rows), squeeze=False, sharey=True)
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.5 * n_cols, 4.2 * n_rows), squeeze=False, sharey=True)
         for ax in axes.ravel():
             ax.axis("off")
 
@@ -306,35 +297,27 @@ class ClarityVisualizer:
             fraction = (part["n_first"] / part["n_cells"]).to_numpy()
             bucket = np.clip(np.digitize(fraction, edges[1:-1]), 0, len(centers) - 1)
 
-            means = np.array([part["containment"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
-            errs = np.array([part["containment"].to_numpy()[bucket == b].std() / np.sqrt((bucket == b).sum()) if (bucket == b).sum() > 1 else 0.0 for b in range(len(centers))])
-            chances = np.array([part["containment_chance"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
             counts = np.array([(bucket == b).sum() for b in range(len(centers))])
+            means = np.array([part["containment"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
 
-            # the bars: dark for the clear bins, light for the unclear ones, the token count on top; the smoothed
-            # observed trend as a solid line and the smoothed chance level as a dashed line
-            width = (edges[1:] - edges[:-1]) * 0.85
-            colors = np.where(clear, self.color_lookup["clear"], self.color_lookup["unclear"])
-            ax.bar(centers, np.nan_to_num(means), width, color=colors, linewidth=0)
-            for center, mean, count in zip(centers, means, counts):
-                if count:
-                    ax.text(center, mean + 0.015, str(count), ha="center", va="bottom", fontsize=7, color="#3a3a3a")
-            if len(part) >= 3:
-                ax.plot(grid, trend(fraction, part["containment"].to_numpy()), color="#1f3d6b", linewidth=1.8)
-                ax.plot(grid, trend(fraction, part["containment_chance"].to_numpy()), color="black", linestyle="--", linewidth=1.4)
+            # the bars: height = tokens in the bin, colour = their mean containment
+            width = (edges[1:] - edges[:-1]) * 0.9
+            ax.bar(centers, counts, width, color=[cmap(norm(m)) if np.isfinite(m) else (0, 0, 0, 0) for m in means], edgecolor="#3a3a3a", linewidth=0.4)
+            ax.axvline(x=clear_fraction, color="black", linestyle="--", linewidth=1)
 
             ax.set_xlim((edges[0], edges[-1]))
-            ax.set_ylim((0.0, 1.05))
             ax.set_xticks(np.linspace(0.0, 1.0, 6))
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
             ax.tick_params(labelsize=8)
             ax.set_title(f"{LABELS.get(second, second)} ({len(part)} tokens)")
             if idx % n_cols == 0:
-                ax.set_ylabel("Shared significant cells / smaller set")
+                ax.set_ylabel("Tokens")
             if idx // n_cols == n_rows - 1:
                 ax.set_xlabel(f"Clarity of the token (fraction of {LABELS.get(first, first)}-significant cells)")
 
             # report the statistics behind the panel
-            for side, mask in (("clear", clear[bucket]), ("unclear", ~clear[bucket])):
+            clear = fraction >= clear_fraction
+            for side, mask in (("clear", clear), ("unclear", ~clear)):
                 obs, chance = part["containment"].to_numpy()[mask], part["containment_chance"].to_numpy()[mask]
                 diff = obs - chance
                 self.logger.info(
@@ -344,16 +327,12 @@ class ClarityVisualizer:
                             f"above chance {int((diff > 0).sum())}/{int(mask.sum())} | p {wilcoxon(diff)[1] if len(diff) >= 5 and (diff != 0).any() else float('nan'):.1e}"
                 )
 
-        handles = [
-            Patch(color=self.color_lookup["clear"], label=f"Clear tokens (fraction >= {clear_fraction:g})"),
-            Patch(color=self.color_lookup["unclear"], label=f"Unclear tokens (fraction < {clear_fraction:g})"),
-            matplotlib.lines.Line2D([], [], color="#1f3d6b", label=f"Observed trend (kernel {bandwidth:g})"),
-            matplotlib.lines.Line2D([], [], color="black", linestyle="--", label="Chance trend"),
-        ]
-        axes[0, 0].legend(handles=handles, loc="upper left", fontsize=8)
+        fig.suptitle(f"Tokens by clarity, coloured by their overlap with the {LABELS.get(tag, tag)} cells (z >= {threshold:g}, both sets >= {min_cells} cells; dashed: clear from {clear_fraction:g})")
+        plt.tight_layout(pad=1.0, rect=(0.0, 0.0, 0.93, 0.95))
 
-        fig.suptitle(f"Overlap with the {LABELS.get(tag, tag)} cells by clarity (z >= {threshold:g}, both sets >= {min_cells} cells)")
-        plt.tight_layout(pad=1.0, rect=(0.0, 0.0, 1.0, 0.96))
+        # the shared colour bar of the containment
+        cax = fig.add_axes((0.945, 0.12, 0.012, 0.76))
+        fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, label="Mean shared significant cells / smaller set")
 
         # save the overlap plot
         plt.savefig(Path(tgt_folder) / Path(f"clarity_overlap-{tag}.svg"))

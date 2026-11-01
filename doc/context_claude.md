@@ -322,9 +322,9 @@ vain to +0.3 at +3 s; cue without attempt is flat at 0; walk rises slowly to +0.
 Reading the overlap columns: pooled over all tokens the containment is only modestly above chance, because the chance
 level (success set / all cells) is itself 0.4-0.6 and climbs to 0.9 in the clearest tokens. The plot therefore
 bins the tokens by their clarity (fraction of success-significant cells, 15 equal bins, clear = fraction >= 0.4)
-and shows one histogram per pair with a Gaussian-kernel trend (bandwidth 0.1) of the observed and of the chance
-containment (`clarity_overlap-cont.svg`); the table below groups the bins into the clear and the unclear side, where
-the conclusion is read:
+and shows one histogram per pair: the bar height is the number of tokens in the bin and the bar colour is their mean
+containment, darker = more of the other target's cells inside the success cells (`clarity_overlap-cont.svg`); the
+table below groups the bins into the clear and the unclear side, where the conclusion is read:
 
 | pair | clear tokens | containment clear side (chance) | pooled clear side | informative bucket 0.6-0.8 (chance) | unclear tokens | containment unclear side (chance) |
 |---|---|---|---|---|---|---|
