@@ -13,10 +13,8 @@ The repository answers it with three building blocks, all leak-free and all cach
 | **prediction** | a leak-free ExtraTrees predictor of the behavior from a causal window of the cell signals, scored on contiguous time blocks | `src/prediction` |
 | **contrast** | pairwise comparisons of event types (success vs missed / in vain / cue / walk): do the same cells lock onto both, and do they respond the same way | `src/clarity` |
 
-Everything older (`sps_select`, `rfecv_predict`, shuffled-frame splits) was removed: it leaked through the temporal
-autocorrelation of the interpolated signals and scored random walks as well as real cells. See
-[doc/context_human.md](doc/context_human.md) for the story and [doc/context_claude.md](doc/context_claude.md) for the
-exhaustive technical record.
+[doc/context_human.md](doc/context_human.md) tells the story with worked examples; [doc/context_claude.md](doc/context_claude.md)
+is the exhaustive technical record (definitions, every experiment, every number, open points).
 
 ## Headline results
 
@@ -31,7 +29,7 @@ causal 5 s window, 5 contiguous blocks with 5 s purge, within-block AUC.
    the clearest 30 % keep 98 % of the all-cell AUC (0.715).
 3. **In the clear recordings, success, missed and in-vain reaches use the same cells; success and missed respond
    the same way, in vain the opposite way; the cue cells are a separate small population.** Overlap histograms by
-   clarity bucket and response-profile panels in `plot/clarity/contrast/cont/`, details in the docs.
+   clarity bin and response-profile panels in `plot/clarity/contrast/cont/`, details in the docs.
 
 ## Layout
 
@@ -42,7 +40,7 @@ src/
                 EventPreprocessor (native-rate event windows)
   clarity/      ClarityEngine (per-cell clarity, cache), ContrastEngine (pairwise targets, cache), ClarityVisualizer (maps, overlap, profiles)
   prediction/   ExtraTreesEngine (leak-free predictor, cache), PredictionSummarizer (rank / subset plots)
-  deduction/    Locator / PenaltyComputer / Visualizer (spike-window expansion, unchanged logic)
+  deduction/    Locator / PenaltyComputer / Visualizer (spike-window expansion)
 script/         command-line entry points (argparse)
 test/           determinism and cache-reproduction tests
 cache/          every engine output: clarity/{init,memo}/{beh}, extratrees/{init,memo}/{beh}[/subset_30], contrast/{init,memo}/{first}, deduce/{beh}
@@ -58,7 +56,9 @@ and `rerun=True` to recompute. A cached result is reused only when its configura
 
 ## Running
 
-Use the `regular` conda environment and launch the scripts from `script/` with the repository root on the path:
+Requirements: Python 3.11+, numpy, pandas, scipy, scikit-learn, matplotlib, joblib, python-dotenv, imbalanced-learn.
+Point `config/.env.path` at the data, plot and cache folders, then launch the scripts from `script/` with the
+repository root on the path:
 
 ```bash
 cd script
@@ -67,7 +67,7 @@ python clarity_map.py       --beh cont --view-width -80 80 --n-workers 6      # 
 python clarity_auc.py       --beh cont --noise --n-workers 6                  # tokens ranked by ExtraTrees AUC vs clarity fraction (+ random-walk control)
 python clarity_subset.py    --beh cont --fraction 0.3 --n-workers 6           # clearest / random / least-clear / all cells
 python clarity_contrast.py  --first cont --seconds cont_missed cont_inv cont_inv_near cont_inv_isolated cue_none walk --clear-fraction 0.4 --n-bins 15
-python deduce_3d.py                                                            # spike-window expansion penalties (legacy deduction)
+python deduce_3d.py                                                            # spike-window expansion penalties
 python deduce_viz.py        --token K215_A_D1 --beh cont
 ```
 
@@ -80,7 +80,7 @@ Every script prints `--help`. The targets accepted by `--beh` / `--first` / `--s
 | `cont_missed` | contralateral missed reach |
 | `cont_inv` | contralateral in-vain reach; `cont_inv_near` within 3 s after a success ended, `cont_inv_isolated` with no success in the 8 s before |
 | `cue` | valve / spout cue; `cue_none` a cue followed by no contralateral attempt within 5 s |
-| `walk`, `both`, `both_inv`, `cont&inv`, `both&inv` | the historical targets |
+| `walk`, `both`, `both_inv`, `cont&inv`, `both&inv` | the remaining targets |
 
 Tests:
 
@@ -98,11 +98,17 @@ PYTHONPATH=.. python preprocessor_test.py   # determinism of the preprocessors, 
 | `clarity_auc.py` | `cache/extratrees/{shard}/{beh}/{token}-{beh}[_noise]_R.csv` | `plot/clarity/auc/{beh}/clarity_auc-{beh}[_noise].svg` |
 | `clarity_subset.py` | `cache/extratrees/{shard}/{beh}/subset_30/...` | `plot/clarity/subset/{beh}/clarity_subset-{beh}.svg` |
 | `clarity_contrast.py` | `cache/contrast/{shard}/{first}/{token}-{first}-{second}_{R,T}.csv` | `plot/clarity/contrast/{first}/clarity_{overlap,profile}-{first}.svg` |
-| `deduce_3d.py`, `deduce_viz.py` | `cache/deduce/{beh}/{token}_{N,B,L,R}.json` (not tracked, 5.8 GB) | `plot/deduce/...` |
+| `deduce_3d.py`, `deduce_viz.py` | `cache/deduce/{beh}/{token}_{N,B,L,R}.json` (not tracked, several GB) | `plot/deduce/...` |
 
 Reading a map: one panel per cell, the significant cells first in warm colours (sorted by z), the others after in cool
 colours; a heatmap stacks the events as rows over the frames around the onset (0.1 s each), a curve averages them;
 the grey mask marks the frames outside the clarity window, which the score never saw.
+
+Reading the contrast plots: the overlap figure has one histogram per pair, bar height = share of the pair's tokens in
+a clarity bin, bar colour = mean containment (shared significant cells over the smaller set) minus its chance level
+(blue above chance, grey at chance, red below), dashed line = clear / unclear split; the profile figure shows the
+correlation of the per-cell responses between the two event kinds against a relabelling null, and the population
+time course of the success cells around every kind of event.
 
 ## Protocol in one paragraph
 

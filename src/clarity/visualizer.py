@@ -59,6 +59,8 @@ class ClarityVisualizer:
             "chance":   "#d1d1d1",
             "clear":    "#4e7abd",
             "unclear":  "#9dbbe0",
+            "above":    "#2f5597",
+            "below":    "#c43639",
         }
         self.target_lookup = {
             "cont":                 "#4e7abd",
@@ -262,8 +264,9 @@ class ClarityVisualizer:
         """
         Plot, per target pair, the distribution of the tokens over their clarity with the overlap of the significant
         cells as the colour: the tokens are binned by the fraction of reference-significant cells, the bar height is
-        the number of tokens in the bin, and the bar colour is the mean containment (shared cells over the smaller
-        set) of those tokens, the darker the higher; a dashed line splits the clear from the unclear tokens
+        the share of the pair's tokens falling in the bin, and the bar colour is the mean excess of the containment
+        (shared cells over the smaller set) over its chance level, blue above chance, grey at chance, red below; a
+        dashed line splits the clear from the unclear tokens
 
         :param table:           The stacked records of the contrast engine (one row per token and pair)
         :param tgt_folder:      The folder where the plot will be saved
@@ -279,8 +282,8 @@ class ClarityVisualizer:
         pairs = list(table[["first", "second"]].drop_duplicates().itertuples(index=False))
         edges = np.linspace(0.0, 1.0, n_bins + 1)
         centers = (edges[:-1] + edges[1:]) / 2
-        cmap = plt.get_cmap("Blues")
-        norm = matplotlib.colors.Normalize(vmin=0.0, vmax=1.0)
+        cmap = matplotlib.colors.LinearSegmentedColormap.from_list("excess", [self.color_lookup["below"], self.color_lookup["chance"], self.color_lookup["above"]])
+        norm = matplotlib.colors.Normalize(vmin=-0.4, vmax=0.4)
 
         n_cols = min(3, len(pairs))
         n_rows = int(np.ceil(len(pairs) / n_cols))
@@ -298,20 +301,20 @@ class ClarityVisualizer:
             bucket = np.clip(np.digitize(fraction, edges[1:-1]), 0, len(centers) - 1)
 
             counts = np.array([(bucket == b).sum() for b in range(len(centers))])
-            means = np.array([part["containment"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
+            excess = (part["containment"] - part["containment_chance"]).to_numpy()
+            means = np.array([excess[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
 
-            # the bars: height = tokens in the bin, colour = their mean containment
+            # the bars: height = share of the pair's tokens in the bin, colour = their mean containment above chance
             width = (edges[1:] - edges[:-1]) * 0.9
-            ax.bar(centers, counts, width, color=[cmap(norm(m)) if np.isfinite(m) else (0, 0, 0, 0) for m in means], edgecolor="#3a3a3a", linewidth=0.4)
+            ax.bar(centers, counts / max(len(part), 1), width, color=[cmap(norm(m)) if np.isfinite(m) else (0, 0, 0, 0) for m in means], edgecolor="#3a3a3a", linewidth=0.4)
             ax.axvline(x=clear_fraction, color="black", linestyle="--", linewidth=1)
 
             ax.set_xlim((edges[0], edges[-1]))
             ax.set_xticks(np.linspace(0.0, 1.0, 6))
-            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
             ax.tick_params(labelsize=8)
             ax.set_title(f"{LABELS.get(second, second)} ({len(part)} tokens)")
             if idx % n_cols == 0:
-                ax.set_ylabel("Tokens")
+                ax.set_ylabel("Share of the tokens")
             if idx // n_cols == n_rows - 1:
                 ax.set_xlabel(f"Clarity of the token (fraction of {LABELS.get(first, first)}-significant cells)")
 
@@ -332,7 +335,7 @@ class ClarityVisualizer:
 
         # the shared colour bar of the containment
         cax = fig.add_axes((0.945, 0.12, 0.012, 0.76))
-        fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, label="Mean shared significant cells / smaller set")
+        fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, label="Mean containment minus chance (shared / smaller set)")
 
         # save the overlap plot
         plt.savefig(Path(tgt_folder) / Path(f"clarity_overlap-{tag}.svg"))
