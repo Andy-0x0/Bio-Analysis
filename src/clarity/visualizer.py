@@ -62,13 +62,13 @@ class ClarityVisualizer:
         }
         self.target_lookup = {
             "cont":                 "#4e7abd",
-            "cont_missed":          "#56a4d9",
+            "cont_missed":          "#2e9c6b",
             "cont_inv":             "#c43639",
-            "cont_inv_near":        "#e39b9c",
+            "cont_inv_near":        "#e58a8c",
             "cont_inv_isolated":    "#7a1c1e",
-            "cue":                  "#d9a441",
-            "cue_none":             "#e8c272",
-            "walk":                 "#8c8c8c",
+            "cue":                  "#e3922b",
+            "cue_none":             "#e3922b",
+            "walk":                 "#8a63b3",
         }
 
     def __getstate__(self) -> Dict:
@@ -393,7 +393,7 @@ class ClarityVisualizer:
 
         ax_r.set_ylim((-1.0, 1.0))
         ax_r.set_xticks(x)
-        ax_r.set_xticklabels([f"{LABELS.get(second, second)}\n({len(group)} tokens)" for _, second, group in groups])
+        ax_r.set_xticklabels([f"{LABELS.get(second, second)} ({len(group)} tokens)" for _, second, group in groups], rotation=45, ha="right")
         ax_r.set_ylabel("Pearson r of the per-cell responses")
         ax_r.set_title(f"Response profile similarity with {LABELS.get(tag, tag)}")
         ax_r.legend(handles=[Patch(color=self.color_lookup["observed"], label="Observed"), Patch(color=self.color_lookup["chance"], label="Relabelling null")], loc="upper right")
@@ -414,10 +414,12 @@ class ClarityVisualizer:
             mean, err = wide.mean(axis=0), wide.std(axis=0) / np.sqrt(len(wide))
             color = self.target_lookup.get(beh, self.color_lookup["chance"])
             ax_curve.plot(mean.index, mean.to_numpy(), color=color, linewidth=2, label=f"{LABELS.get(beh, beh)} ({len(wide)} tokens)")
-            ax_curve.fill_between(mean.index, (mean - err).to_numpy(), (mean + err).to_numpy(), color=color, alpha=0.2, linewidth=0)
+            ax_curve.fill_between(mean.index, (mean - err).to_numpy(), (mean + err).to_numpy(), color=color, alpha=0.1, linewidth=0)
 
         ax_curve.axvline(x=0, color="black", linestyle="--", linewidth=1)
         ax_curve.axhline(y=0, color="black", linewidth=0.8)
+        ax_curve.set_xticks(np.unique(curves["offset"]))
+        plt.setp(ax_curve.get_xticklabels(), rotation=45, ha="right")
         ax_curve.set_xlabel("seconds around the onset")
         ax_curve.set_ylabel("Population mean z of the reference cells")
         ax_curve.set_title(f"Population response of the {LABELS.get(pairs[0][0], pairs[0][0]) if pairs else tag} cells")
