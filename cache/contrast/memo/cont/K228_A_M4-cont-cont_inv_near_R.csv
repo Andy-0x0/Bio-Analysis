@@ -1,0 +1,2 @@
+token,first,second,n_cells,n_first,n_second,n_both,jaccard,containment,jaccard_chance,containment_chance,rho,n_events_first,n_events_second,r,slope,r_null,z_r,amp_first,amp_second
+K228_A_M4,cont,cont_inv_near,25,18,2,2,0.1111111111111111,1.0,0.07758620689655173,0.72,-0.003846153846153846,39,5,0.281423345603803,0.54675572209821,0.19585079332047206,0.49784634641494363,0.09133064,0.1884175

@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K223_B_D2,walk,real,all,71,39,5,0.7190646231201798,0.7205001810555043

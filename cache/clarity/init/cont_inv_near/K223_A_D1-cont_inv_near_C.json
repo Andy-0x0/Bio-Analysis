@@ -1,0 +1,10 @@
+{
+    "token": "K223_A_D1",
+    "beh": "cont_inv_near",
+    "inner_width": [
+        -50,
+        50
+    ],
+    "n_shift": 1000,
+    "seed": 42
+}

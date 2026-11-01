@@ -1,0 +1,2 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K227_B_D8,cue_none,real,all,56,15,3,0.5639909236996098,0.29162861024338205

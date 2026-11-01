@@ -1,22 +1,18 @@
-import os
 import time
 from pathlib import Path
-from dotenv import load_dotenv
 
-from copy import deepcopy
 import random
 import pandas as pd
 import numpy as np
 
-from tools.logger import ABlockLogger
-from tools.io_engineer import fetch_tokens
-from src_predict.preprocessor import Preprocessor
+from src.util import ABlockLogger, fetch_tokens, load_paths
+from src.preprocess import Preprocessor, BlockPreprocessor, EventPreprocessor, TARGETS
 
 # import path consts
-load_dotenv("../config/.env.path")
-PATH_ROOT = Path(os.getenv("ROOT_PATH"))  # path of this project directory
-PATH_DATA = Path(os.getenv("INIT_DATA_PATH"))  # path of the initialization data directory
-PATH_MEMO = Path(os.getenv("MEMO_DATA_PATH"))  # path of the memory data directory
+PATHS = load_paths()
+PATH_ROOT = PATHS["ROOT_PATH"]          # path of this project directory
+PATH_DATA = PATHS["INIT_DATA_PATH"]     # path of the initialization data directory
+PATH_MEMO = PATHS["MEMO_DATA_PATH"]     # path of the memory data directory
 
 
 # global test report logger
@@ -69,7 +65,30 @@ def test_preprocessor_determinism():
     logger.debug(role="test_preprocessor_determinism", message=f"Success [{count}/{len(tokens)}] tested")
 
 
+def test_targets_consistency():
+    """
+    every target yields the same number of events on the frame grid (BlockPreprocessor) and on the native rate
+    (EventPreprocessor) up to the runs merged by adjacent annotations, and the derived targets are subsets of
+    their parents
+    """
+
+    token = fetch_tokens(folder=PATH_DATA, shard="all")[0]
+    ev = EventPreprocessor(beh_path=PATH_DATA / Path(f"{token}_B.csv"), sig_path=PATH_DATA / Path(f"{token}_S.csv"), log_level="ERROR")
+
+    for target in TARGETS:
+        prep = BlockPreprocessor(beh_path=PATH_DATA / Path(f"{token}_B.csv"), sig_path=PATH_DATA / Path(f"{token}_S.csv"), target=target, log_level="ERROR")
+        n_frame, n_event = len(prep.onsets(prep.y)), len(ev.select(target))
+        assert n_frame <= n_event, (target, n_frame, n_event)
+        logger.debug(role="test_targets_consistency", message=f"{token} | {target:20s} | frame-grid onsets {n_frame:4d} | native events {n_event:4d}")
+
+    assert set(ev.select("cue_none").index) <= set(ev.select("cue").index)
+    assert set(ev.select("cont_inv_near").index) <= set(ev.select("cont_inv").index)
+    assert set(ev.select("cont_inv_isolated").index) <= set(ev.select("cont_inv").index)
+    assert not (set(ev.select("cont_inv_near").index) & set(ev.select("cont_inv_isolated").index))
+
+    logger.debug(role="test_targets_consistency", message="Success")
+
+
 if __name__ == '__main__':
     test_preprocessor_determinism()
-
-
+    test_targets_consistency()

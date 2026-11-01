@@ -1,0 +1,2 @@
+token,first,second,n_cells,n_first,n_second,n_both,jaccard,containment,jaccard_chance,containment_chance,rho,n_events_first,n_events_second,r,slope,r_null,z_r,amp_first,amp_second
+K223_A_M4,cont,cue_none,51,12,3,1,0.07142857142857142,0.3333333333333333,0.04938271604938271,0.23529411764705882,0.0216289592760181,38,25,0.07453891679870611,0.07250939925068435,0.4040038143977651,-3.119394149061342,0.18543334,0.16405207

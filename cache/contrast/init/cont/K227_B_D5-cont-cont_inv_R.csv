@@ -1,0 +1,2 @@
+token,first,second,n_cells,n_first,n_second,n_both,jaccard,containment,jaccard_chance,containment_chance,rho,n_events_first,n_events_second,r,slope,r_null,z_r,amp_first,amp_second
+K227_B_D5,cont,cont_inv,50,46,40,40,0.8695652173913043,1.0,0.7479674796747966,0.92,0.6169027611044418,48,116,0.5606857065020251,0.10037105327685122,0.8303176837147255,-4.144049505029135,0.5461478,0.09182951

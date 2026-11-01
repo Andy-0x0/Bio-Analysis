@@ -1,0 +1,5 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K223_B_D5,cont_inv,real,all,51,7,3,0.8901417089071768,0.7853002875158875
+K223_B_D5,cont_inv,real,top,15,7,3,0.8202157080178406,0.7125828304890239
+K223_B_D5,cont_inv,real,random,15,7,3,0.9039111724599801,0.8104758202840607
+K223_B_D5,cont_inv,real,bottom,15,7,3,0.8356393377193028,0.6656739347721468

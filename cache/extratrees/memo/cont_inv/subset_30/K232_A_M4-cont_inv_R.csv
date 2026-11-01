@@ -1,0 +1,5 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K232_A_M4,cont_inv,real,all,29,8,2,0.5749662243711839,0.31133683431935044
+K232_A_M4,cont_inv,real,top,9,8,2,0.602602543100254,0.37820802955788246
+K232_A_M4,cont_inv,real,random,9,8,2,0.3650129207077925,0.2200091594179422
+K232_A_M4,cont_inv,real,bottom,9,8,2,0.38792554690711023,0.2133581594453371

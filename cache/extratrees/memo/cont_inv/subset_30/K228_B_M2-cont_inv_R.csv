@@ -1,0 +1,5 @@
+token,beh,control,subset,n_cells,n_events,n_folds,auc_fold,auc
+K228_B_M2,cont_inv,real,all,22,9,3,0.6324232966087099,0.30971312460563083
+K228_B_M2,cont_inv,real,top,7,9,3,0.4314783345907001,0.2799038240036858
+K228_B_M2,cont_inv,real,random,7,9,3,0.351373180912499,0.31469970353454924
+K228_B_M2,cont_inv,real,bottom,7,9,3,0.7477220873322734,0.4405485362018369
