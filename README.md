@@ -29,8 +29,9 @@ causal 5 s window, 5 contiguous blocks with 5 s purge, within-block AUC.
 2. **Clear cells carry the information.** ExtraTrees on the clearest 30 % of the cells (ranked on training blocks
    only) reaches 0.70 vs 0.60 on the least-clear 30 % (37/45 wins, p < 1e-6) and 0.68 on a size-matched random set;
    the clearest 30 % keep 98 % of the all-cell AUC (0.715).
-3. **Success and missed reaches use the same cells with the same response; in vain uses the same cells with the
-   opposite response; the cue has its own small population.** See `plot/clarity/contrast/cont/` and the docs.
+3. **In the clear recordings, success, missed and in-vain reaches use the same cells; success and missed respond
+   the same way, in vain the opposite way; the cue cells are a separate small population.** Overlap histograms by
+   clarity bucket and response-profile panels in `plot/clarity/contrast/cont/`, details in the docs.
 
 ## Layout
 
@@ -65,7 +66,7 @@ export PYTHONPATH=..        # PowerShell: $env:PYTHONPATH = ".."
 python clarity_map.py       --beh cont --view-width -80 80 --n-workers 6      # per-cell event heatmaps / curves, significant cells first
 python clarity_auc.py       --beh cont --noise --n-workers 6                  # tokens ranked by ExtraTrees AUC vs clarity fraction (+ random-walk control)
 python clarity_subset.py    --beh cont --fraction 0.3 --n-workers 6           # clearest / random / least-clear / all cells
-python clarity_contrast.py  --first cont --seconds cont_missed cont_inv cont_inv_near cont_inv_isolated cue_none walk
+python clarity_contrast.py  --first cont --seconds cont_missed cont_inv cont_inv_near cont_inv_isolated cue_none walk --clear-fraction 0.4
 python deduce_3d.py                                                            # spike-window expansion penalties (legacy deduction)
 python deduce_viz.py        --token K215_A_D1 --beh cont
 ```

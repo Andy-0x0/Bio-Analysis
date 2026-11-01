@@ -318,11 +318,27 @@ Population time course of the success cells (mean z per second, `clarity_profile
 the error band of success at every second); in vain rises from the onset to +0.2..+0.25 at +2..+5 s, isolated in
 vain to +0.3 at +3 s; cue without attempt is flat at 0; walk rises slowly to +0.2 at +4 s.
 
-Reading the overlap columns: the containment has little power because the success set is large in the tokens that
-have enough cells of the other kind (the chance level is the success set over all cells, 0.4-0.6); it is above chance
-for in vain (p 0.001) and walk (p 0.02), at chance for the cue, and under-powered for missed (9 tokens; pooled over
-cells 74 of 88 missed-significant cells are success cells). The decisive measurement is the profile similarity: success
-vs missed sits inside the relabelling null, every other pair sits 2.3-3.6 null standard deviations below it.
+Reading the overlap columns: pooled over all tokens the containment is only modestly above chance, because the chance
+level (success set / all cells) is itself 0.4-0.6 and climbs to 0.9 in the clearest tokens. The plot therefore
+buckets the tokens by their clarity (fraction of success-significant cells, edges 0.2 / 0.4 / 0.6 / 0.8, clear =
+fraction >= 0.4) and shows one histogram per pair (`clarity_overlap-cont.svg`); the conclusion is read on the clear
+side, where the sets are large enough to compare:
+
+| pair | clear tokens | containment clear side (chance) | pooled clear side | informative bucket 0.6-0.8 (chance) | unclear tokens | containment unclear side (chance) |
+|---|---|---|---|---|---|---|
+| success vs missed | 8 | 0.75 (0.66) | 74 / 84 | 0.76 (0.72), 4 tokens | 1 | 0.00 (0.30) |
+| success vs in vain | 15 | 0.72 (0.64) | 227 / 269 | 0.87 (0.71), 6 tokens | 15 | 0.46 (0.32), p 0.003 |
+| success vs in vain (near) | 14 | 0.81 (0.64), p 0.003 | 248 / 280 | 0.93 (0.71), 5 tokens | 16 | 0.40 (0.32) |
+| success vs in vain (isolated) | 4 | 0.74 (0.74) | 17 / 26 | 0.61 (0.74), 1 token | 3 | 0.47 (0.28) |
+| success vs cue (no attempt) | 8 | 0.69 (0.65) | 27 / 40 | 0.66 (0.74), 2 tokens | 13 | 0.32 (0.26) |
+| success vs walk | 17 | 0.68 (0.64) | 165 / 233 | 0.73 (0.73), 5 tokens | 18 | 0.46 (0.39) |
+
+So in the clear tokens the in-vain cells are the success cells (0.81-0.93 against 0.64-0.71 chance), the missed
+cells are the success cells in the tokens that have them (74 of 84 pooled, but only 8 tokens), the cue cells are not
+(at or below chance in every clear bucket), and walk is at chance. In the unclear tokens the sets are small and the
+containment is near chance for every pair. The decisive measurement for "same response?" remains the profile
+similarity: success vs missed sits inside the relabelling null, every other pair sits 2.3-3.6 null standard deviations
+below it.
 
 Clarity screens predictability for the other targets as well (`clarity_auc.py --beh ...`, Spearman between the
 clarity fraction and the ExtraTrees auc_fold, pooled tokens): cont_inv 0.65 (43 tokens; init 0.78, memory 0.46),

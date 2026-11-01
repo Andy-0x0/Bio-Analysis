@@ -57,6 +57,8 @@ class ClarityVisualizer:
             "mask":     "#3a3a3a",
             "observed": "#4e7abd",
             "chance":   "#d1d1d1",
+            "clear":    "#4e7abd",
+            "unclear":  "#9dbbe0",
         }
         self.target_lookup = {
             "cont":                 "#4e7abd",
@@ -251,69 +253,95 @@ class ClarityVisualizer:
         self,
         table: pd.DataFrame,
         tgt_folder: str | os.PathLike | Path,
-        tag: str            = "cont",
-        threshold: float    = 2.0,
-        min_cells: int      = 3,
+        tag: str                        = "cont",
+        threshold: float                = 2.0,
+        min_cells: int                  = 3,
+        edges: Tuple[float, ...]        = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
+        clear_fraction: float           = 0.4,
     ) -> None:
         """
-        Plot, per target pair, the overlap of the significant cells across the tokens next to its chance level: the
-        containment (shared cells over the smaller set) against the containment of two independent draws of the
-        same sizes
+        Plot, per target pair, the overlap of the significant cells as a histogram over the clarity of the tokens:
+        the tokens are bucketed by the fraction of reference-significant cells, every bucket shows the mean
+        containment (shared cells over the smaller set) of its tokens, the clear buckets in the dark tone, the
+        unclear ones in the light tone, with the chance containment of two independent draws marked per bucket
 
-        :param table:       The stacked records of the contrast engine (one row per token and pair)
-        :param tgt_folder:  The folder where the plot will be saved
-        :param tag:         The tag of the plot file (the reference target of the pairs)
-        :param threshold:   The minimum z-score of a significant cell (title only)
-        :param min_cells:   The minimum size of both significant sets for a token to count
+        :param table:           The stacked records of the contrast engine (one row per token and pair)
+        :param tgt_folder:      The folder where the plot will be saved
+        :param tag:             The tag of the plot file (the reference target of the pairs)
+        :param threshold:       The minimum z-score of a significant cell (title only)
+        :param min_cells:       The minimum size of both significant sets for a token to count
+        :param edges:           The bucket edges of the clarity fraction (reference-significant cells / all cells)
+        :param clear_fraction:  The clarity fraction from which a bucket counts as clear
 
         :return: None
         """
 
-        pairs = table[["first", "second"]].drop_duplicates().itertuples(index=False)
-        groups = []
-        for first, second in pairs:
+        pairs = list(table[["first", "second"]].drop_duplicates().itertuples(index=False))
+        edges = np.asarray(edges, dtype=float)
+        centers = (edges[:-1] + edges[1:]) / 2
+        clear = centers >= clear_fraction
+
+        n_cols = min(3, len(pairs))
+        n_rows = int(np.ceil(len(pairs) / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.5 * n_cols, 4.5 * n_rows), squeeze=False, sharey=True)
+        for ax in axes.ravel():
+            ax.axis("off")
+
+        for idx, (first, second) in enumerate(pairs):
+            ax = axes[idx // n_cols, idx % n_cols]
+            ax.axis("on")
+
             part = table.loc[(table["first"] == first) & (table["second"] == second) & (table["n_first"] >= min_cells) & (table["n_second"] >= min_cells)]
-            groups.append((first, second, part.dropna(subset=["containment", "containment_chance"])))
+            part = part.dropna(subset=["containment", "containment_chance"])
+            fraction = (part["n_first"] / part["n_cells"]).to_numpy()
+            bucket = np.clip(np.digitize(fraction, edges[1:-1]), 0, len(centers) - 1)
 
-        x = np.arange(len(groups))
-        width = 0.4
+            means = np.array([part["containment"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
+            errs = np.array([part["containment"].to_numpy()[bucket == b].std() / np.sqrt((bucket == b).sum()) if (bucket == b).sum() > 1 else 0.0 for b in range(len(centers))])
+            chances = np.array([part["containment_chance"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
+            counts = np.array([(bucket == b).sum() for b in range(len(centers))])
 
-        fig, ax = plt.subplots(figsize=(max(8, 2.2 * len(groups) + 2), 6))
+            # the bars: dark for the clear buckets, light for the unclear ones; the chance level as a black tick
+            width = (edges[1:] - edges[:-1]) * 0.8
+            colors = np.where(clear, self.color_lookup["clear"], self.color_lookup["unclear"])
+            ax.bar(centers, np.nan_to_num(means), width, yerr=errs, capsize=3, color=colors, linewidth=0)
+            ax.hlines(chances, centers - width / 2, centers + width / 2, color="black", linestyle="--", linewidth=1.2)
 
-        means = [group["containment"].mean() if len(group) else np.nan for _, _, group in groups]
-        errs = [group["containment"].std() / np.sqrt(len(group)) if len(group) > 1 else 0.0 for _, _, group in groups]
-        chances = [group["containment_chance"].mean() if len(group) else np.nan for _, _, group in groups]
-        chance_errs = [group["containment_chance"].std() / np.sqrt(len(group)) if len(group) > 1 else 0.0 for _, _, group in groups]
+            ax.set_xlim((edges[0], edges[-1]))
+            ax.set_ylim((0.0, 1.0))
+            ax.set_xticks(centers)
+            ax.set_xticklabels([f"{lo:.1f}-{hi:.1f}\n({count} tokens)" for lo, hi, count in zip(edges[:-1], edges[1:], counts)], fontsize=8)
+            ax.set_title(f"{LABELS.get(second, second)} ({len(part)} tokens)")
+            if idx % n_cols == 0:
+                ax.set_ylabel("Shared significant cells / smaller set")
+            if idx // n_cols == n_rows - 1:
+                ax.set_xlabel(f"Clarity of the token (fraction of {LABELS.get(first, first)}-significant cells)")
 
-        ax.bar(x - width / 2, means, width, yerr=errs, capsize=3, color=self.color_lookup["observed"])
-        ax.bar(x + width / 2, chances, width, yerr=chance_errs, capsize=3, color=self.color_lookup["chance"])
+            # report the statistics behind the panel
+            for side, mask in (("clear", clear[bucket]), ("unclear", ~clear[bucket])):
+                obs, chance = part["containment"].to_numpy()[mask], part["containment_chance"].to_numpy()[mask]
+                diff = obs - chance
+                self.logger.info(
+                    role="ClarityVisualizer",
+                    message=f"{self._label(first, second):32s} | {side:7s} | tokens {int(mask.sum()):2d} | containment {obs.mean() if mask.any() else float('nan'):.3f} "
+                            f"(chance {chance.mean() if mask.any() else float('nan'):.3f}) | pooled {int(part['n_both'].to_numpy()[mask].sum())}/{int(np.minimum(part['n_first'], part['n_second']).to_numpy()[mask].sum())} | "
+                            f"above chance {int((diff > 0).sum())}/{int(mask.sum())} | p {wilcoxon(diff)[1] if len(diff) >= 5 and (diff != 0).any() else float('nan'):.1e}"
+                )
 
-        ax.set_ylim((0.0, 1.0))
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"{LABELS.get(second, second)}\n({len(group)} tokens)" for _, second, group in groups])
-        ax.set_ylabel("Shared significant cells / smaller set")
-        ax.legend(handles=[Patch(color=self.color_lookup["observed"], label="Observed"), Patch(color=self.color_lookup["chance"], label="Chance")], loc="upper right")
+        handles = [
+            Patch(color=self.color_lookup["clear"], label=f"Clear tokens (fraction >= {clear_fraction:g})"),
+            Patch(color=self.color_lookup["unclear"], label=f"Unclear tokens (fraction < {clear_fraction:g})"),
+            matplotlib.lines.Line2D([], [], color="black", linestyle="--", label="Chance"),
+        ]
+        axes[0, 0].legend(handles=handles, loc="upper left", fontsize=8)
 
-        plt.title(f"Overlap with the {LABELS.get(tag, tag)} cells (z >= {threshold:g}, both sets >= {min_cells} cells)")
-        plt.tight_layout(pad=1.0)
+        fig.suptitle(f"Overlap with the {LABELS.get(tag, tag)} cells by clarity (z >= {threshold:g}, both sets >= {min_cells} cells)")
+        plt.tight_layout(pad=1.0, rect=(0.0, 0.0, 1.0, 0.96))
 
         # save the overlap plot
         plt.savefig(Path(tgt_folder) / Path(f"clarity_overlap-{tag}.svg"))
         plt.close(fig)
 
-        # report the statistics behind the plot
-        for first, second, group in groups:
-            if len(group) == 0:
-                self.logger.warning(role="ClarityVisualizer", message=f"{self._label(first, second)} | no token with both sets >= {min_cells} cells")
-                continue
-            diff = group["containment"] - group["containment_chance"]
-            self.logger.info(
-                role="ClarityVisualizer",
-                message=f"{self._label(first, second):32s} | tokens {len(group):2d} | containment {group['containment'].mean():.3f} (chance {group['containment_chance'].mean():.3f}) | "
-                        f"pooled {int(group['n_both'].sum())}/{int(np.minimum(group['n_first'], group['n_second']).sum())} | "
-                        f"jaccard {group['jaccard'].mean():.3f} (chance {group['jaccard_chance'].mean():.3f}) | rho {group['rho'].mean():.3f} | "
-                        f"above chance {int((diff > 0).sum())}/{len(group)} | p {wilcoxon(diff)[1] if len(diff) >= 5 and (diff != 0).any() else float('nan'):.1e}"
-            )
         self.logger.info(role="ClarityVisualizer", message=f"{tag} overlap plotted")
 
     @check_folders("tgt_folder")

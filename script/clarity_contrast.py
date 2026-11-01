@@ -28,6 +28,8 @@ parser.add_argument("--post",           type=float, default=(0.0, 1.0), nargs=2,
 parser.add_argument("--n-perm",         type=int,   default=300,                                                        help="the number of relabellings of the similarity null")
 parser.add_argument("--min-cells",      type=int,   default=3,                                                          help="the minimum number of significant cells for a token to be plotted")
 parser.add_argument("--min-events",     type=int,   default=3,                                                          help="the minimum number of events of both kinds for a token to be plotted")
+parser.add_argument("--edges",          type=float, default=(0.0, 0.2, 0.4, 0.6, 0.8, 1.0), nargs="+",                   help="the clarity-fraction bucket edges of the overlap histograms")
+parser.add_argument("--clear-fraction", type=float, default=0.4,                                                        help="the clarity fraction from which a bucket counts as clear")
 parser.add_argument("--n-workers",      type=int,   default=4,                                                          help="the number of worker processes over the tokens")
 parser.add_argument("--rerun",          action="store_true",                                                            help="re-run even if the contrast caches exist")
 args = parser.parse_args()
@@ -44,6 +46,8 @@ post        = tuple(args.post)
 n_perm      = args.n_perm
 min_cells   = args.min_cells
 min_events  = args.min_events
+edges       = tuple(args.edges)
+clear_frac  = args.clear_fraction
 n_workers   = args.n_workers
 rerun       = args.rerun
 shards      = {"init": PATH_DATA, "memo": PATH_MEMO}
@@ -100,6 +104,8 @@ if __name__ == '__main__':
         tag=first,
         threshold=threshold,
         min_cells=min_cells,
+        edges=edges,
+        clear_fraction=clear_frac,
     )
     viz.display_profile(
         table=table,
