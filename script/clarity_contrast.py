@@ -26,9 +26,11 @@ parser.add_argument("--offsets",        type=float, default=(-5.0, 5.0, 1.0), na
 parser.add_argument("--pre",            type=float, default=(-2.0, -1.0), nargs=2,                                      help="the inclusive baseline range of the per-cell response in seconds")
 parser.add_argument("--post",           type=float, default=(0.0, 1.0), nargs=2,                                        help="the inclusive response range of the per-cell response in seconds")
 parser.add_argument("--n-perm",         type=int,   default=300,                                                        help="the number of relabellings of the similarity null")
+parser.add_argument("--curve-step",     type=float, default=0.25,                                                       help="the sampling step of the population time courses in seconds (akima-interpolated)")
 parser.add_argument("--min-cells",      type=int,   default=3,                                                          help="the minimum number of significant cells for a token to be plotted")
 parser.add_argument("--min-events",     type=int,   default=3,                                                          help="the minimum number of events of both kinds for a token to be plotted")
-parser.add_argument("--edges",          type=float, default=(0.0, 0.2, 0.4, 0.6, 0.8, 1.0), nargs="+",                   help="the clarity-fraction bucket edges of the overlap histograms")
+parser.add_argument("--n-bins",         type=int,   default=15,                                                         help="the number of clarity-fraction bins of the overlap histograms")
+parser.add_argument("--bandwidth",      type=float, default=0.1,                                                        help="the kernel bandwidth (in clarity fraction) of the smoothed overlap trend")
 parser.add_argument("--clear-fraction", type=float, default=0.4,                                                        help="the clarity fraction from which a bucket counts as clear")
 parser.add_argument("--n-workers",      type=int,   default=4,                                                          help="the number of worker processes over the tokens")
 parser.add_argument("--rerun",          action="store_true",                                                            help="re-run even if the contrast caches exist")
@@ -44,9 +46,11 @@ offsets     = np.arange(args.offsets[0], args.offsets[1] + 1e-6, args.offsets[2]
 pre         = tuple(args.pre)
 post        = tuple(args.post)
 n_perm      = args.n_perm
+curve_step  = args.curve_step
 min_cells   = args.min_cells
 min_events  = args.min_events
-edges       = tuple(args.edges)
+n_bins      = args.n_bins
+bandwidth   = args.bandwidth
 clear_frac  = args.clear_fraction
 n_workers   = args.n_workers
 rerun       = args.rerun
@@ -81,6 +85,7 @@ if __name__ == '__main__':
                 pre=pre,
                 post=post,
                 n_perm=n_perm,
+                curve_step=curve_step,
                 n_workers=n_workers,
                 rerun=rerun,
                 tgt_folder=con_folder(shard),
@@ -104,7 +109,8 @@ if __name__ == '__main__':
         tag=first,
         threshold=threshold,
         min_cells=min_cells,
-        edges=edges,
+        n_bins=n_bins,
+        bandwidth=bandwidth,
         clear_fraction=clear_frac,
     )
     viz.display_profile(

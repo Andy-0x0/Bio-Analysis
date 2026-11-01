@@ -256,30 +256,40 @@ class ClarityVisualizer:
         tag: str                        = "cont",
         threshold: float                = 2.0,
         min_cells: int                  = 3,
-        edges: Tuple[float, ...]        = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
+        n_bins: int                     = 15,
+        bandwidth: float                = 0.1,
         clear_fraction: float           = 0.4,
     ) -> None:
         """
         Plot, per target pair, the overlap of the significant cells as a histogram over the clarity of the tokens:
-        the tokens are bucketed by the fraction of reference-significant cells, every bucket shows the mean
-        containment (shared cells over the smaller set) of its tokens, the clear buckets in the dark tone, the
-        unclear ones in the light tone, with the chance containment of two independent draws marked per bucket
+        the tokens are binned by the fraction of reference-significant cells, every bin shows the mean containment
+        (shared cells over the smaller set) of its tokens with the token count on top, the clear bins in the dark
+        tone, the unclear ones in the light tone; a Gaussian-kernel trend of the observed containment (solid) and of
+        the chance containment of two independent draws (dashed) runs across the bins
 
         :param table:           The stacked records of the contrast engine (one row per token and pair)
         :param tgt_folder:      The folder where the plot will be saved
         :param tag:             The tag of the plot file (the reference target of the pairs)
         :param threshold:       The minimum z-score of a significant cell (title only)
         :param min_cells:       The minimum size of both significant sets for a token to count
-        :param edges:           The bucket edges of the clarity fraction (reference-significant cells / all cells)
-        :param clear_fraction:  The clarity fraction from which a bucket counts as clear
+        :param n_bins:          The number of equal bins of the clarity fraction (reference-significant cells / all cells)
+        :param bandwidth:       The Gaussian kernel bandwidth (in clarity fraction) of the smoothed trends
+        :param clear_fraction:  The clarity fraction from which a bin counts as clear
 
         :return: None
         """
 
         pairs = list(table[["first", "second"]].drop_duplicates().itertuples(index=False))
-        edges = np.asarray(edges, dtype=float)
+        edges = np.linspace(0.0, 1.0, n_bins + 1)
         centers = (edges[:-1] + edges[1:]) / 2
         clear = centers >= clear_fraction
+        grid = np.linspace(0.0, 1.0, 201)
+
+        def trend(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+            # the Nadaraya-Watson kernel average of y over x, undefined where no token is within two bandwidths
+            weights = np.exp(-0.5 * ((grid[:, None] - x[None, :]) / bandwidth) ** 2)
+            support = np.abs(grid[:, None] - x[None, :]).min(axis=1) <= 2 * bandwidth
+            return np.where(support, (weights * y[None, :]).sum(axis=1) / (weights.sum(axis=1) + 1e-12), np.nan)
 
         n_cols = min(3, len(pairs))
         n_rows = int(np.ceil(len(pairs) / n_cols))
@@ -301,16 +311,22 @@ class ClarityVisualizer:
             chances = np.array([part["containment_chance"].to_numpy()[bucket == b].mean() if (bucket == b).any() else np.nan for b in range(len(centers))])
             counts = np.array([(bucket == b).sum() for b in range(len(centers))])
 
-            # the bars: dark for the clear buckets, light for the unclear ones; the chance level as a black tick
-            width = (edges[1:] - edges[:-1]) * 0.8
+            # the bars: dark for the clear bins, light for the unclear ones, the token count on top; the smoothed
+            # observed trend as a solid line and the smoothed chance level as a dashed line
+            width = (edges[1:] - edges[:-1]) * 0.85
             colors = np.where(clear, self.color_lookup["clear"], self.color_lookup["unclear"])
-            ax.bar(centers, np.nan_to_num(means), width, yerr=errs, capsize=3, color=colors, linewidth=0)
-            ax.hlines(chances, centers - width / 2, centers + width / 2, color="black", linestyle="--", linewidth=1.2)
+            ax.bar(centers, np.nan_to_num(means), width, color=colors, linewidth=0)
+            for center, mean, count in zip(centers, means, counts):
+                if count:
+                    ax.text(center, mean + 0.015, str(count), ha="center", va="bottom", fontsize=7, color="#3a3a3a")
+            if len(part) >= 3:
+                ax.plot(grid, trend(fraction, part["containment"].to_numpy()), color="#1f3d6b", linewidth=1.8)
+                ax.plot(grid, trend(fraction, part["containment_chance"].to_numpy()), color="black", linestyle="--", linewidth=1.4)
 
             ax.set_xlim((edges[0], edges[-1]))
-            ax.set_ylim((0.0, 1.0))
-            ax.set_xticks(centers)
-            ax.set_xticklabels([f"{lo:.1f}-{hi:.1f}\n({count} tokens)" for lo, hi, count in zip(edges[:-1], edges[1:], counts)], fontsize=8)
+            ax.set_ylim((0.0, 1.05))
+            ax.set_xticks(np.linspace(0.0, 1.0, 6))
+            ax.tick_params(labelsize=8)
             ax.set_title(f"{LABELS.get(second, second)} ({len(part)} tokens)")
             if idx % n_cols == 0:
                 ax.set_ylabel("Shared significant cells / smaller set")
@@ -331,7 +347,8 @@ class ClarityVisualizer:
         handles = [
             Patch(color=self.color_lookup["clear"], label=f"Clear tokens (fraction >= {clear_fraction:g})"),
             Patch(color=self.color_lookup["unclear"], label=f"Unclear tokens (fraction < {clear_fraction:g})"),
-            matplotlib.lines.Line2D([], [], color="black", linestyle="--", label="Chance"),
+            matplotlib.lines.Line2D([], [], color="#1f3d6b", label=f"Observed trend (kernel {bandwidth:g})"),
+            matplotlib.lines.Line2D([], [], color="black", linestyle="--", label="Chance trend"),
         ]
         axes[0, 0].legend(handles=handles, loc="upper left", fontsize=8)
 
@@ -418,7 +435,7 @@ class ClarityVisualizer:
 
         ax_curve.axvline(x=0, color="black", linestyle="--", linewidth=1)
         ax_curve.axhline(y=0, color="black", linewidth=0.8)
-        ax_curve.set_xticks(np.unique(curves["offset"]))
+        ax_curve.set_xticks(np.arange(np.ceil(curves["offset"].min()), np.floor(curves["offset"].max()) + 1))
         plt.setp(ax_curve.get_xticklabels(), rotation=45, ha="right")
         ax_curve.set_xlabel("seconds around the onset")
         ax_curve.set_ylabel("Population mean z of the reference cells")

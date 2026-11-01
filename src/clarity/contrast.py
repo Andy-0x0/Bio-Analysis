@@ -194,6 +194,7 @@ class ContrastEngine:
         pre: Tuple[float, float]                    = (-2.0, -1.0),
         post: Tuple[float, float]                   = (0.0, 1.0),
         n_perm: int                                 = 300,
+        curve_step: float                           = 0.25,
         rerun: bool                                 = False,
         tgt_folder: None | str | os.PathLike | Path = None,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -212,6 +213,8 @@ class ContrastEngine:
         :param pre:             The inclusive offset range of the baseline
         :param post:            The inclusive offset range of the response
         :param n_perm:          The number of relabellings of the similarity null
+        :param curve_step:      The sampling step of the population time courses in seconds (akima-interpolated
+                                between the native samples; the statistics keep the `offsets` sampling)
         :param rerun:           The toggle for re-running even if the cached result exists
         :param tgt_folder:      The folder storing the cached results (None computes without caching)
 
@@ -230,6 +233,7 @@ class ContrastEngine:
             "pre": list(pre),
             "post": list(post),
             "n_perm": n_perm,
+            "curve_step": curve_step,
             "seed": self.seed,
         }
         stem = f"{token}-{first}-{second}"
@@ -267,11 +271,14 @@ class ContrastEngine:
             record.update(self.similarity(windows_first=windows[first], windows_second=windows[second], offsets=offsets, pre=pre, post=post, n_perm=n_perm, seed=self.seed))
             record = pd.DataFrame([record])
 
-            # the population time course of the reference cells (significant for the first target) per kind
+            # the population time course of the reference cells (significant for the first target) per kind, on a
+            # dense akima-interpolated grid so that the curves are as smooth as the frame-level signal
             reference = [prep.cells.index(cell) for cell in ClarityEngine.significant(tables[first], threshold=threshold) if cell in prep.cells]
+            dense = np.round(np.arange(offsets[0], offsets[-1] + 1e-6, curve_step), 6)
+            smooth = {beh: prep.windows(target=beh, offsets=dense, method="akima")[1] for beh in pair}
             curves = pd.DataFrame(
-                {beh: windows[beh][:, reference, :].mean(axis=(0, 1)) if len(reference) and len(windows[beh]) else np.full(len(offsets), np.nan) for beh in pair},
-                index=pd.Index(offsets, name="offset"),
+                {beh: smooth[beh][:, reference, :].mean(axis=(0, 1)) if len(reference) and len(smooth[beh]) else np.full(len(dense), np.nan) for beh in pair},
+                index=pd.Index(dense, name="offset"),
             )
 
             # save the result & config into cache
@@ -308,6 +315,7 @@ class ContrastEngine:
         pre: Tuple[float, float]                    = (-2.0, -1.0),
         post: Tuple[float, float]                   = (0.0, 1.0),
         n_perm: int                                 = 300,
+        curve_step: float                           = 0.25,
         n_workers: int                              = 1,
         rerun: bool                                 = False,
         tgt_folder: None | str | os.PathLike | Path = None,
@@ -326,6 +334,8 @@ class ContrastEngine:
         :param pre:             The inclusive offset range of the baseline
         :param post:            The inclusive offset range of the response
         :param n_perm:          The number of relabellings of the similarity null
+        :param curve_step:      The sampling step of the population time courses in seconds (akima-interpolated
+                                between the native samples; the statistics keep the `offsets` sampling)
         :param n_workers:       The number of worker processes over the tokens
         :param rerun:           The toggle for re-running even if the cached results exist
         :param tgt_folder:      The folder storing the cached results
@@ -337,7 +347,7 @@ class ContrastEngine:
         def process(token: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
             record, curves = self.compute(
                 token=token, pair=pair, clarity_folder=clarity_folder, threshold=threshold, inner_width=inner_width, n_shift=n_shift,
-                offsets=offsets, pre=pre, post=post, n_perm=n_perm, rerun=rerun, tgt_folder=tgt_folder,
+                offsets=offsets, pre=pre, post=post, n_perm=n_perm, curve_step=curve_step, rerun=rerun, tgt_folder=tgt_folder,
             )
             long = curves.reset_index().melt(id_vars="offset", var_name="beh", value_name="value")
             long.insert(0, "second", pair[1])

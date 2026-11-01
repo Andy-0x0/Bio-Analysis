@@ -66,7 +66,7 @@ export PYTHONPATH=..        # PowerShell: $env:PYTHONPATH = ".."
 python clarity_map.py       --beh cont --view-width -80 80 --n-workers 6      # per-cell event heatmaps / curves, significant cells first
 python clarity_auc.py       --beh cont --noise --n-workers 6                  # tokens ranked by ExtraTrees AUC vs clarity fraction (+ random-walk control)
 python clarity_subset.py    --beh cont --fraction 0.3 --n-workers 6           # clearest / random / least-clear / all cells
-python clarity_contrast.py  --first cont --seconds cont_missed cont_inv cont_inv_near cont_inv_isolated cue_none walk --clear-fraction 0.4
+python clarity_contrast.py  --first cont --seconds cont_missed cont_inv cont_inv_near cont_inv_isolated cue_none walk --clear-fraction 0.4 --n-bins 15
 python deduce_3d.py                                                            # spike-window expansion penalties (legacy deduction)
 python deduce_viz.py        --token K215_A_D1 --beh cont
 ```

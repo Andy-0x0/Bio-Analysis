@@ -272,8 +272,9 @@ Three complementary measurements, all per recording:
    (window mean at 0..+1 s minus mean at -2..-1 s) on native-rate windows; Pearson r across cells between the two
    targets; the null relabels the pooled events at random (what two halves of the same kind would give); z_r is the
    distance to that null. r near the null = exchangeable; z_r <= -2 = less similar than two samples of one kind.
-3. **Population time course** (`curves`): the mean z of the reference (success-significant) cells per second around
-   the onset of each kind.
+3. **Population time course** (`curves`): the mean z of the reference (success-significant) cells around the onset
+   of each kind, sampled every 0.25 s with the Akima interpolant between the native samples (display only; the
+   statistics above use the 1 s linear sampling).
 
 ### 7.2 Numbers from the session's scratch scripts (2026-10-31; same definitions, native-rate windows -2..+4 s)
 
@@ -320,9 +321,10 @@ vain to +0.3 at +3 s; cue without attempt is flat at 0; walk rises slowly to +0.
 
 Reading the overlap columns: pooled over all tokens the containment is only modestly above chance, because the chance
 level (success set / all cells) is itself 0.4-0.6 and climbs to 0.9 in the clearest tokens. The plot therefore
-buckets the tokens by their clarity (fraction of success-significant cells, edges 0.2 / 0.4 / 0.6 / 0.8, clear =
-fraction >= 0.4) and shows one histogram per pair (`clarity_overlap-cont.svg`); the conclusion is read on the clear
-side, where the sets are large enough to compare:
+bins the tokens by their clarity (fraction of success-significant cells, 15 equal bins, clear = fraction >= 0.4)
+and shows one histogram per pair with a Gaussian-kernel trend (bandwidth 0.1) of the observed and of the chance
+containment (`clarity_overlap-cont.svg`); the table below groups the bins into the clear and the unclear side, where
+the conclusion is read:
 
 | pair | clear tokens | containment clear side (chance) | pooled clear side | informative bucket 0.6-0.8 (chance) | unclear tokens | containment unclear side (chance) |
 |---|---|---|---|---|---|---|

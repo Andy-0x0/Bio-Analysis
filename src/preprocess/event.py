@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.interpolate import Akima1DInterpolator
 
 from ..util import ABlockLogger, load_paths
 from .target import TARGETS, NAMES_SUCCESS, NAMES_CUE, normalize_name
@@ -103,12 +104,15 @@ class EventPreprocessor:
         self,
         target: str,
         offsets: np.ndarray = np.arange(-2.0, 4.0 + 1e-6, 1.0),
+        method: str         = "linear",
     ) -> Tuple[pd.DataFrame, np.ndarray]:
         """
         Cut the native-rate window around the onset of every event of a target
 
         :param target:  The binary target, one key of `src.preprocess.TARGETS`
         :param offsets: The sampling offsets of the window relative to the onset, in seconds
+        :param method:  The interpolation between the native samples: "linear" (statistics) or "akima" (the same
+                        smooth interpolant as the frame-level preprocessor, for display curves)
 
         :return: The (events, windows) pair, windows shaped (events, cells, offsets); the events whose window exceeds
                  the recording are dropped from both
@@ -124,8 +128,14 @@ class EventPreprocessor:
         if len(starts) == 0:
             return events, np.zeros((0, len(self.cells), len(offsets)), dtype=np.float32)
 
-        # linear interpolation of every cell at the requested seconds
+        # interpolation of every cell at the requested seconds
         sample_times = starts[:, None] + offsets[None, :]
-        windows = np.stack([np.interp(sample_times, self.time, self.x[:, c]) for c in range(len(self.cells))], axis=1)
+        if method == "akima":
+            windows = np.stack([Akima1DInterpolator(self.time, self.x[:, c])(sample_times) for c in range(len(self.cells))], axis=1)
+        elif method == "linear":
+            windows = np.stack([np.interp(sample_times, self.time, self.x[:, c]) for c in range(len(self.cells))], axis=1)
+        else:
+            self.logger.error(role="EventPreprocessor", message=f"unknown interpolation method: {method}")
+            raise RuntimeError(f"unknown interpolation method: {method}")
 
         return events, windows.astype(np.float32)
